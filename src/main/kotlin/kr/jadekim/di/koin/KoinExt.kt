@@ -42,6 +42,7 @@ fun Module.dataSource(
     password: String,
     isReadOnly: Boolean = false,
     name: String = qualifier.name,
+    poolSize: Int = 5,
     configure: HikariDataSource.() -> Unit = {}
 ) {
     single(qualifier) {
@@ -52,6 +53,7 @@ fun Module.dataSource(
             this.password = password
             this.poolName = name
             this.isReadOnly = isReadOnly
+            this.maximumPoolSize = poolSize
             connectionTimeout = Duration.ofSeconds(5).toMillis()
             configure()
 
@@ -65,6 +67,7 @@ fun Module.dataSource(
     qualifier: DSQualifier,
     isReadOnly: Boolean = false,
     name: String = qualifier.name,
+    poolSize: Int = 5,
     propertyPrefix: String = if (isReadOnly) "db.$name.readonly." else "db.$name.",
     configure: HikariDataSource.() -> Unit = {}
 ) {
@@ -75,6 +78,7 @@ fun Module.dataSource(
             username = getString(propertyPrefix + "username")
             password = getString(propertyPrefix + "password")
             poolName = name
+            this.maximumPoolSize = poolSize
             this.isReadOnly = isReadOnly
             connectionTimeout = Duration.ofSeconds(5).toMillis()
             configure()
@@ -99,13 +103,20 @@ fun Module.db(
     qualifier: DBQualifier,
     createDataSource: Boolean = true,
     withReadOnly: Boolean = false,
+    readPoolSize: Int = 5,
+    crudPoolSize: Int = if (withReadOnly) 3 else readPoolSize,
     configureDataSource: HikariDataSource.() -> Unit = {}
 ) {
     if (createDataSource) {
-        dataSource(qualifier.dsQualifier, configure = configureDataSource)
+        dataSource(qualifier.dsQualifier, poolSize = crudPoolSize, configure = configureDataSource)
 
         if (withReadOnly) {
-            dataSource(qualifier.readOnlyDSQualifier, isReadOnly = true, configure = configureDataSource)
+            dataSource(
+                qualifier.readOnlyDSQualifier,
+                isReadOnly = true,
+                poolSize = readPoolSize,
+                configure = configureDataSource
+            )
         } else {
             single(qualifier.readOnlyDSQualifier) { get<DataSource>(qualifier.dsQualifier) }
         }
@@ -117,14 +128,19 @@ fun Module.db(
 fun Module.readDB(
     qualifier: DBQualifier,
     createDataSource: Boolean = true,
-    dsName: DSQualifier = qualifier.readOnlyDSQualifier,
+    poolSize: Int = 5,
     configureDataSource: HikariDataSource.() -> Unit = {}
 ) {
     if (createDataSource) {
-        dataSource(dsName, isReadOnly = true, configure = configureDataSource)
+        dataSource(
+            qualifier.readOnlyDSQualifier,
+            isReadOnly = true,
+            poolSize = poolSize,
+            configure = configureDataSource
+        )
     }
 
-    single(qualifier) { ReadDB(get(dsName)) }
+    single(qualifier) { ReadDB(get(qualifier.readOnlyDSQualifier)) }
 }
 
 fun Module.redis(
@@ -133,7 +149,7 @@ fun Module.redis(
     port: Int = 6379,
     db: Int = 0,
     keyPrefix: String = "",
-    poolSize: Int = Runtime.getRuntime().availableProcessors() * 2
+    poolSize: Int = Runtime.getRuntime().availableProcessors()
 ) {
     single(qualifier) { Redis(host, port, db, keyPrefix, poolSize) }.onClose { it?.close() }
 }
@@ -149,7 +165,7 @@ fun Module.redis(
             getInt(propertyPrefix + "port", 6379),
             getInt(propertyPrefix + "db", 0),
             getString(propertyPrefix + "key.prefix", ""),
-            getInt(propertyPrefix + "pool.size", Runtime.getRuntime().availableProcessors() * 2)
+            getInt(propertyPrefix + "pool.size", Runtime.getRuntime().availableProcessors())
         )
     }.onClose { it?.close() }
 }
