@@ -2,14 +2,14 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.util.Date
 
 plugins {
-    kotlin("jvm") version "1.3.61"
+    kotlin("jvm") version "1.3.70"
     `maven-publish`
     id("com.jfrog.bintray") version "1.8.4"
 }
 
 val artifactName = "koin-extension"
 val artifactGroup = "kr.jadekim"
-val artifactVersion = "0.0.2"
+val artifactVersion = "1.0.0"
 group = artifactGroup
 version = artifactVersion
 
@@ -25,7 +25,6 @@ dependencies {
     val commonApiServerVersion: String by project
     val exposedExtensionVersion: String by project
     val lettuceExtensionVersion: String by project
-    val ktorExtensionVersion: String by project
 
     implementation(kotlin("stdlib-jdk8"))
 
@@ -38,7 +37,6 @@ dependencies {
     compileOnly("kr.jadekim:common-api-server:$commonApiServerVersion")
     compileOnly("kr.jadekim:exposed-extension:$exposedExtensionVersion")
     compileOnly("kr.jadekim:lettuce-extension:$lettuceExtensionVersion")
-    compileOnly("kr.jadekim:ktor-extension:$ktorExtensionVersion")
 }
 
 tasks.withType<KotlinCompile> {

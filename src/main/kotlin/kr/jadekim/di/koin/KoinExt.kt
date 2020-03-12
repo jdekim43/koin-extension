@@ -35,15 +35,15 @@ fun Scope.getString(key: String, defaultValue: String): String {
 }
 
 fun Module.dataSource(
-    qualifier: DSQualifier,
-    driver: String,
-    url: String,
-    username: String,
-    password: String,
-    isReadOnly: Boolean = false,
-    name: String = qualifier.name,
-    poolSize: Int = 5,
-    configure: HikariDataSource.() -> Unit = {}
+        qualifier: DSQualifier,
+        driver: String,
+        url: String,
+        username: String,
+        password: String,
+        isReadOnly: Boolean = false,
+        name: String = qualifier.name,
+        poolSize: Int = 5,
+        configure: HikariDataSource.() -> Unit = {}
 ) {
     single(qualifier) {
         HikariDataSource().apply {
@@ -64,12 +64,12 @@ fun Module.dataSource(
 }
 
 fun Module.dataSource(
-    qualifier: DSQualifier,
-    isReadOnly: Boolean = false,
-    name: String = qualifier.name,
-    poolSize: Int = 5,
-    propertyPrefix: String = if (isReadOnly) "db.$name.readonly." else "db.$name.",
-    configure: HikariDataSource.() -> Unit = {}
+        qualifier: DSQualifier,
+        isReadOnly: Boolean = false,
+        name: String = qualifier.name,
+        poolSize: Int = 5,
+        propertyPrefix: String = if (isReadOnly) "db.$name.readonly." else "db.$name.",
+        configure: HikariDataSource.() -> Unit = {}
 ) {
     single(qualifier) {
         HikariDataSource().apply {
@@ -100,22 +100,22 @@ fun HikariDataSource.configureMysql() {
 }
 
 fun Module.db(
-    qualifier: DBQualifier,
-    createDataSource: Boolean = true,
-    withReadOnly: Boolean = false,
-    readPoolSize: Int = 5,
-    crudPoolSize: Int = if (withReadOnly) 3 else readPoolSize,
-    configureDataSource: HikariDataSource.() -> Unit = {}
+        qualifier: DBQualifier,
+        createDataSource: Boolean = true,
+        withReadOnly: Boolean = false,
+        readPoolSize: Int = 5,
+        crudPoolSize: Int = if (withReadOnly) 3 else readPoolSize,
+        configureDataSource: HikariDataSource.() -> Unit = {}
 ) {
     if (createDataSource) {
         dataSource(qualifier.dsQualifier, poolSize = crudPoolSize, configure = configureDataSource)
 
         if (withReadOnly) {
             dataSource(
-                qualifier.readOnlyDSQualifier,
-                isReadOnly = true,
-                poolSize = readPoolSize,
-                configure = configureDataSource
+                    qualifier.readOnlyDSQualifier,
+                    isReadOnly = true,
+                    poolSize = readPoolSize,
+                    configure = configureDataSource
             )
         } else {
             single(qualifier.readOnlyDSQualifier) { get<DataSource>(qualifier.dsQualifier) }
@@ -126,17 +126,17 @@ fun Module.db(
 }
 
 fun Module.readDB(
-    qualifier: DBQualifier,
-    createDataSource: Boolean = true,
-    poolSize: Int = 5,
-    configureDataSource: HikariDataSource.() -> Unit = {}
+        qualifier: DBQualifier,
+        createDataSource: Boolean = true,
+        poolSize: Int = 5,
+        configureDataSource: HikariDataSource.() -> Unit = {}
 ) {
     if (createDataSource) {
         dataSource(
-            qualifier.readOnlyDSQualifier,
-            isReadOnly = true,
-            poolSize = poolSize,
-            configure = configureDataSource
+                qualifier.readOnlyDSQualifier,
+                isReadOnly = true,
+                poolSize = poolSize,
+                configure = configureDataSource
         )
     }
 
@@ -144,28 +144,28 @@ fun Module.readDB(
 }
 
 fun Module.redis(
-    qualifier: RedisQualifier,
-    host: String,
-    port: Int = 6379,
-    db: Int = 0,
-    keyPrefix: String = "",
-    poolSize: Int = Runtime.getRuntime().availableProcessors()
+        qualifier: RedisQualifier,
+        host: String,
+        port: Int = 6379,
+        db: Int = 0,
+        keyPrefix: String = "",
+        poolSize: Int = Runtime.getRuntime().availableProcessors()
 ) {
     single(qualifier) { Redis(host, port, db, keyPrefix, poolSize) }.onClose { it?.close() }
 }
 
 fun Module.redis(
-    qualifier: RedisQualifier,
-    name: String = qualifier.name,
-    propertyPrefix: String = "redis.$name."
+        qualifier: RedisQualifier,
+        name: String = qualifier.name,
+        propertyPrefix: String = "redis.$name."
 ) {
     single(qualifier) {
         Redis(
-            getString(propertyPrefix + "host")!!,
-            getInt(propertyPrefix + "port", 6379),
-            getInt(propertyPrefix + "db", 0),
-            getString(propertyPrefix + "key.prefix", ""),
-            getInt(propertyPrefix + "pool.size", Runtime.getRuntime().availableProcessors())
+                getString(propertyPrefix + "host")!!,
+                getInt(propertyPrefix + "port", 6379),
+                getInt(propertyPrefix + "db", 0),
+                getString(propertyPrefix + "key.prefix", ""),
+                getInt(propertyPrefix + "pool.size", Runtime.getRuntime().availableProcessors())
         )
     }.onClose { it?.close() }
 }
