@@ -1,11 +1,15 @@
 package kr.jadekim.di.koin
 
 import com.zaxxer.hikari.HikariDataSource
+import io.lettuce.core.support.BoundedPoolConfig
 import kr.jadekim.db.exposed.CrudDB
 import kr.jadekim.db.exposed.ReadDB
 import kr.jadekim.redis.lettuce.Redis
+import kr.jadekim.redis.lettuce.ReplicaRedis
+import kr.jadekim.redis.lettuce.StandaloneRedis
 import org.koin.core.module.Module
 import org.koin.core.scope.Scope
+import org.koin.dsl.bind
 import org.koin.dsl.onClose
 import java.time.Duration
 import javax.sql.DataSource
@@ -143,29 +147,68 @@ fun Module.readDB(
     single(qualifier) { ReadDB(get(qualifier.readOnlyDSQualifier)) }
 }
 
-fun Module.redis(
+fun Module.standaloneStringRedis(
         qualifier: RedisQualifier,
         host: String,
         port: Int = 6379,
         db: Int = 0,
+        password: String? = null,
         keyPrefix: String = "",
-        poolSize: Int = Runtime.getRuntime().availableProcessors()
+        poolSize: Int = BoundedPoolConfig.DEFAULT_MAX_TOTAL
 ) {
-    single(qualifier) { Redis(host, port, db, keyPrefix, poolSize) }.onClose { it?.close() }
+    single(qualifier) { StandaloneRedis.stringCodec(host, port, db, password, keyPrefix, poolSize) }
+            .bind(Redis::class)
+            .onClose { it?.close() }
 }
 
-fun Module.redis(
+fun Module.standaloneStringRedis(
         qualifier: RedisQualifier,
         name: String = qualifier.name,
         propertyPrefix: String = "redis.$name."
 ) {
     single(qualifier) {
-        Redis(
+        StandaloneRedis.stringCodec(
                 getString(propertyPrefix + "host")!!,
                 getInt(propertyPrefix + "port", 6379),
                 getInt(propertyPrefix + "db", 0),
+                getString(propertyPrefix + "password"),
                 getString(propertyPrefix + "key.prefix", ""),
-                getInt(propertyPrefix + "pool.size", Runtime.getRuntime().availableProcessors())
+                getInt(propertyPrefix + "pool.size", BoundedPoolConfig.DEFAULT_MAX_TOTAL)
         )
-    }.onClose { it?.close() }
+    }
+            .bind(Redis::class)
+            .onClose { it?.close() }
+}
+
+fun Module.replicaStringRedis(
+        qualifier: RedisQualifier,
+        host: String,
+        port: Int = 6379,
+        db: Int = 0,
+        password: String? = null,
+        keyPrefix: String = "",
+        poolSize: Int = BoundedPoolConfig.DEFAULT_MAX_TOTAL
+) {
+    single(qualifier) { ReplicaRedis.stringCodec(host, port, db, password, keyPrefix, poolSize) }
+            .bind(Redis::class)
+            .onClose { it?.close() }
+}
+
+fun Module.replicaStringRedis(
+        qualifier: RedisQualifier,
+        name: String = qualifier.name,
+        propertyPrefix: String = "redis.$name."
+) {
+    single(qualifier) {
+        ReplicaRedis.stringCodec(
+                getString(propertyPrefix + "host")!!,
+                getInt(propertyPrefix + "port", 6379),
+                getInt(propertyPrefix + "db", 0),
+                getString(propertyPrefix + "password"),
+                getString(propertyPrefix + "key.prefix", ""),
+                getInt(propertyPrefix + "pool.size", BoundedPoolConfig.DEFAULT_MAX_TOTAL)
+        )
+    }
+            .bind(Redis::class)
+            .onClose { it?.close() }
 }

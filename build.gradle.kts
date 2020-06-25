@@ -2,14 +2,14 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.util.Date
 
 plugins {
-    kotlin("jvm") version "1.3.70"
+    kotlin("jvm") version "1.3.72"
     `maven-publish`
     id("com.jfrog.bintray") version "1.8.4"
 }
 
 val artifactName = "koin-extension"
 val artifactGroup = "kr.jadekim"
-val artifactVersion = "1.0.1"
+val artifactVersion = "1.0.3"
 group = artifactGroup
 version = artifactVersion
 
@@ -22,7 +22,6 @@ repositories {
 dependencies {
     val koinVersion: String by project
     val hikaricpVersion: String by project
-    val commonApiServerVersion: String by project
     val exposedExtensionVersion: String by project
     val lettuceExtensionVersion: String by project
 
@@ -34,7 +33,6 @@ dependencies {
     compileOnly("com.zaxxer:HikariCP:$hikaricpVersion") {
         exclude("org.slf4j", "slf4j-api")
     }
-    compileOnly("kr.jadekim:common-api-server:$commonApiServerVersion")
     compileOnly("kr.jadekim:exposed-extension:$exposedExtensionVersion")
     compileOnly("kr.jadekim:lettuce-extension:$lettuceExtensionVersion")
 }
