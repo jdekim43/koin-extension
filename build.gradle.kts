@@ -2,14 +2,14 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.util.Date
 
 plugins {
-    kotlin("jvm") version "1.3.72"
+    kotlin("jvm") version "1.4.10"
     `maven-publish`
     id("com.jfrog.bintray") version "1.8.4"
 }
 
 val artifactName = "koin-extension"
 val artifactGroup = "kr.jadekim"
-val artifactVersion = "1.0.3"
+val artifactVersion = "1.0.6"
 group = artifactGroup
 version = artifactVersion
 

@@ -3,6 +3,7 @@ package kr.jadekim.di.koin
 import com.zaxxer.hikari.HikariDataSource
 import io.lettuce.core.support.BoundedPoolConfig
 import kr.jadekim.db.exposed.CrudDB
+import kr.jadekim.db.exposed.DB
 import kr.jadekim.db.exposed.ReadDB
 import kr.jadekim.redis.lettuce.Redis
 import kr.jadekim.redis.lettuce.ReplicaRedis
@@ -11,23 +12,24 @@ import org.koin.core.module.Module
 import org.koin.core.scope.Scope
 import org.koin.dsl.bind
 import org.koin.dsl.onClose
+import org.koin.ext.getIntProperty
 import java.time.Duration
 import javax.sql.DataSource
 
 fun Scope.getInt(key: String): Int? {
-    return getKoin().getProperty<Int>(key)
+    return getKoin().getIntProperty(key)
 }
 
 fun Scope.getInt(key: String, defaultValue: Int): Int {
-    return getKoin().getProperty<Int>(key, defaultValue)
+    return getKoin().getIntProperty(key, defaultValue)
 }
 
 fun Scope.getBoolean(key: String): Boolean? {
-    return getKoin().getProperty<String>(key)?.toBoolean()
+    return getKoin().getProperty(key)?.equals("true", true)
 }
 
 fun Scope.getBoolean(key: String, defaultValue: Boolean): Boolean {
-    return getKoin().getProperty<String>(key)?.toBoolean() ?: defaultValue
+    return getKoin().getProperty(key)?.equals("true", true) ?: defaultValue
 }
 
 fun Scope.getString(key: String): String? {
@@ -47,6 +49,7 @@ fun Module.dataSource(
         isReadOnly: Boolean = false,
         name: String = qualifier.name,
         poolSize: Int = 5,
+        autoConnect: Boolean = true,
         configure: HikariDataSource.() -> Unit = {}
 ) {
     single(qualifier) {
@@ -61,10 +64,12 @@ fun Module.dataSource(
             connectionTimeout = Duration.ofSeconds(5).toMillis()
             configure()
 
-            //initial with startup
-            connection.close()
+            if (autoConnect) {
+                //initial with startup
+                connection.close()
+            }
         }
-    }.onClose { it?.close() }
+    }.bind(DataSource::class).onClose { it?.close() }
 }
 
 fun Module.dataSource(
@@ -73,6 +78,7 @@ fun Module.dataSource(
         name: String = qualifier.name,
         poolSize: Int = 5,
         propertyPrefix: String = if (isReadOnly) "db.$name.readonly." else "db.$name.",
+        autoConnect: Boolean = true,
         configure: HikariDataSource.() -> Unit = {}
 ) {
     single(qualifier) {
@@ -87,20 +93,12 @@ fun Module.dataSource(
             connectionTimeout = Duration.ofSeconds(5).toMillis()
             configure()
 
-            //initial with startup
-            connection.close()
+            if (autoConnect) {
+                //initial with startup
+                connection.close()
+            }
         }
-    }.onClose { it?.close() }
-}
-
-fun HikariDataSource.configureMssql() {
-    connectionTestQuery = "SELECT 1"
-}
-
-fun HikariDataSource.configureMysql() {
-    connectionTestQuery = "SELECT 1"
-    addDataSourceProperty("useUnicode", "true")
-    addDataSourceProperty("characterEncoding", "utf8")
+    }.bind(DataSource::class).onClose { it?.close() }
 }
 
 fun Module.db(
@@ -109,16 +107,18 @@ fun Module.db(
         withReadOnly: Boolean = false,
         readPoolSize: Int = 5,
         crudPoolSize: Int = if (withReadOnly) 3 else readPoolSize,
+        autoConnect: Boolean = true,
         configureDataSource: HikariDataSource.() -> Unit = {}
 ) {
     if (createDataSource) {
-        dataSource(qualifier.dsQualifier, poolSize = crudPoolSize, configure = configureDataSource)
+        dataSource(qualifier.dsQualifier, poolSize = crudPoolSize, autoConnect = autoConnect, configure = configureDataSource)
 
         if (withReadOnly) {
             dataSource(
                     qualifier.readOnlyDSQualifier,
                     isReadOnly = true,
                     poolSize = readPoolSize,
+                    autoConnect = autoConnect,
                     configure = configureDataSource
             )
         } else {
@@ -127,12 +127,15 @@ fun Module.db(
     }
 
     single(qualifier) { CrudDB(get(qualifier.dsQualifier), get(qualifier.readOnlyDSQualifier)) }
+            .bind(ReadDB::class)
+            .bind(DB::class)
 }
 
 fun Module.readDB(
         qualifier: DBQualifier,
         createDataSource: Boolean = true,
         poolSize: Int = 5,
+        autoConnect: Boolean = true,
         configureDataSource: HikariDataSource.() -> Unit = {}
 ) {
     if (createDataSource) {
@@ -140,6 +143,7 @@ fun Module.readDB(
                 qualifier.readOnlyDSQualifier,
                 isReadOnly = true,
                 poolSize = poolSize,
+                autoConnect = autoConnect,
                 configure = configureDataSource
         )
     }
