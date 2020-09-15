@@ -9,7 +9,7 @@ plugins {
 
 val artifactName = "koin-extension"
 val artifactGroup = "kr.jadekim"
-val artifactVersion = "1.0.6"
+val artifactVersion = "1.0.7"
 group = artifactGroup
 version = artifactVersion
 
