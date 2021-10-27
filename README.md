@@ -1,4 +1,6 @@
 # koin-extension
+Moved to https://github.com/jdekim43/jext
+
 * Extension functions
     * Koin property
     * Datasource
